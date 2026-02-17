@@ -1,0 +1,33 @@
+- id: check-branch-staleness
+  name: check branch is up-to-date with default branch
+  description: >
+    Fetches the remote default branch and fails if the current branch is behind.
+    Prevents concurrent developers or AI agents from committing against stale state.
+    Auto-detects default branch (main, develop, master, etc.).
+  entry: hooks/check-branch-staleness.sh
+  language: script
+  always_run: true
+  pass_filenames: false
+  stages: [pre-commit]
+
+- id: trivy-deps
+  name: trivy (dependency vulnerabilities)
+  description: >
+    Scans dependency lockfiles (Cargo.lock, package-lock.json, go.sum, etc.)
+    for HIGH/CRITICAL CVEs using trivy fs. Complements trivy config which only
+    scans IaC/YAML for misconfigurations.
+  entry: hooks/trivy-deps.sh
+  language: script
+  files: (Cargo\.lock|package-lock\.json|go\.sum|requirements\.txt|poetry\.lock|pnpm-lock\.yaml|yarn\.lock|Gemfile\.lock|composer\.lock)$
+  stages: [pre-commit]
+
+- id: no-hardcoded-secrets
+  name: check for hardcoded secrets
+  description: >
+    Detects hardcoded passwords, API keys, and secret keys in config files.
+    Looks for patterns like password: "base64string..." while ignoring
+    template references ($__env{}, secretRef, existingSecret).
+  entry: hooks/no-hardcoded-secrets.sh
+  language: script
+  types: [yaml]
+  stages: [pre-commit]
