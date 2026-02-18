@@ -9,6 +9,7 @@ Reusable [pre-commit](https://pre-commit.com/) hooks for GitOps, security, and m
 | `check-branch-staleness` | Fail if branch is behind the default branch. Prevents stale commits in multi-agent or team workflows. |
 | `trivy-deps` | Scan dependency lockfiles for HIGH/CRITICAL CVEs. Catches what `trivy config` misses. |
 | `no-hardcoded-secrets` | Detect hardcoded passwords and API keys in YAML files. |
+| `require-signed-commits` | Block commits where `commit.gpgsign` is not `true` or `user.signingkey` is unset. |
 
 ## Usage
 
@@ -28,6 +29,46 @@ Then install:
 ```bash
 pip install pre-commit  # if not already installed
 pre-commit install
+```
+
+## Personal hooks without per-repo setup
+
+Some hooks (like `require-signed-commits`) enforce personal discipline that shouldn't be imposed on teammates. Use a global git hook instead — fires on every repo with zero per-repo setup:
+
+```bash
+mkdir -p ~/.config/git/hooks
+git config --global core.hooksPath ~/.config/git/hooks
+```
+
+Create `~/.config/git/hooks/pre-commit`:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Personal check (e.g. signing)
+gpgsign="$(git config --get commit.gpgsign 2>/dev/null || echo 'false')"
+if [[ "$gpgsign" != "true" ]]; then
+  echo "✗ Unsigned commit blocked: commit.gpgsign is not set to true"
+  exit 1
+fi
+signingkey="$(git config --get user.signingkey 2>/dev/null || echo '')"
+if [[ -z "$signingkey" ]]; then
+  echo "✗ Unsigned commit blocked: user.signingkey is not set"
+  exit 1
+fi
+
+# Chain to repo pre-commit config if present
+repo_root="$(git rev-parse --show-toplevel)"
+for config in "$repo_root/.pre-commit-config.local.yaml" "$repo_root/.pre-commit-config.yaml"; do
+  if [[ -f "$config" ]]; then
+    exec pre-commit run --config "$config" --hook-stage pre-commit
+  fi
+done
+```
+
+```bash
+chmod +x ~/.config/git/hooks/pre-commit
 ```
 
 ## Hook Details
