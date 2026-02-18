@@ -3,8 +3,7 @@
 # Prevents unsigned commits from entering the repo, enforcing GPG/SSH signing
 # discipline especially important in agentic AI workflows.
 #
-# Checks git config commit.gpgsign is true, and that a signing key is configured.
-# Gracefully skips if gpgsign is explicitly disabled (opt-out pattern).
+# Fails unless commit.gpgsign is explicitly set to true and user.signingkey is configured.
 
 set -euo pipefail
 
@@ -28,7 +27,6 @@ fi
 
 # Check a signing key is set
 signingkey="$(git config --get user.signingkey 2>/dev/null || echo '')"
-gpg_format="$(git config --get gpg.format 2>/dev/null || echo 'openpgp')"
 
 if [[ -z "$signingkey" ]]; then
   echo "✗ Unsigned commit blocked: commit.gpgsign=true but user.signingkey is not set"
