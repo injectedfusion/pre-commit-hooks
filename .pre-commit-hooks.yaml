@@ -31,3 +31,16 @@
   language: script
   types: [yaml]
   stages: [pre-commit]
+
+- id: require-signed-commits
+  name: require signed commits
+  description: >
+    Fails if commit.gpgsign is not true or user.signingkey is not set.
+    Enforces GPG/SSH commit signing discipline, especially important in
+    agentic AI workflows where unsigned commits can slip through
+    non-interactive shells.
+  entry: hooks/require-signed-commits.sh
+  language: script
+  always_run: true
+  pass_filenames: false
+  stages: [pre-commit]
