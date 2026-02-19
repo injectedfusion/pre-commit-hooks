@@ -27,9 +27,38 @@
     Detects hardcoded passwords, API keys, and secret keys in config files.
     Looks for patterns like password: "base64string..." while ignoring
     template references ($__env{}, secretRef, existingSecret).
+    NOTE: superseded by gitleaks/trufflehog for broader coverage; retained
+    for repos that cannot install system binaries.
   entry: hooks/no-hardcoded-secrets.sh
   language: script
   types: [yaml]
+  stages: [pre-commit]
+
+- id: gitleaks
+  name: gitleaks (secret detection)
+  description: >
+    Scans staged changes for 150+ secret types using pattern matching:
+    API keys, tokens, passwords, connection strings, and more.
+    Per-repo config: place .gitleaks.toml in repo root to add allowlists.
+    Requires: gitleaks in PATH (brew install gitleaks).
+  entry: hooks/gitleaks.sh
+  language: script
+  always_run: true
+  pass_filenames: false
+  stages: [pre-commit]
+
+- id: trufflehog
+  name: trufflehog (verified secret detection)
+  description: >
+    Scans for secrets using entropy analysis + pattern matching, then verifies
+    them against the issuing service. Only fails on confirmed live secrets,
+    significantly reducing false positives vs pattern-only tools.
+    Complements gitleaks: use both for defense in depth.
+    Requires: trufflehog in PATH (brew install trufflehog).
+  entry: hooks/trufflehog.sh
+  language: script
+  always_run: true
+  pass_filenames: false
   stages: [pre-commit]
 
 - id: require-signed-commits
